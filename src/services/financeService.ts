@@ -16,70 +16,74 @@ import {
 import { db } from '../firebase';
 import type { Config, Expense, Income, Limit } from '../types';
 import { normalizeKeyword } from '../utils/format';
-import { getExpenseMonth, getMonthKey } from '../utils/month';
 
 const configRef = doc(db, 'config', 'main');
 const limitsRef = collection(db, 'limits');
 const expensesRef = collection(db, 'expenses');
 const incomesRef = collection(db, 'incomes');
 
-const toDate = (value: unknown): Date => (value instanceof Timestamp ? value.toDate() : new Date());
+const VARIEDADOS_CATEGORY = 'variados';
+const DEFAULT_VARIEDADOS_LIMIT = 500;
 
-const getMonthlySpent = (expenses: Expense[], keyword: string, monthKey: string): number =>
-  expenses
-    .filter((expense) => expense.keyword === keyword && getExpenseMonth(expense) === monthKey)
-    .reduce((sum, expense) => sum + expense.valor, 0);
+const toDate = (value: unknown): Date => value instanceof Timestamp ? value.toDate() : new Date();
 
 export const ensureConfig = async (): Promise<void> => {
   const snapshot = await getDoc(configRef);
   if (!snapshot.exists()) await setDoc(configRef, { saldo: 0, rendaMensal: 0 });
 };
 
-export const addExpense = async (payload: Omit<Expense, 'id' | 'createdAt'>): Promise<void> => {
-  const keyword = normalizeKeyword(payload.keyword);
+export const addExpense = async (payload: Omit<Expense, 'id' | 'createdAt'>): Promise<{ usedVariados: boolean; createdCategory: boolean }> => {
+  const rawKeyword = payload.keyword.trim();
   const valor = Number(payload.valor);
-  const mes = payload.mes ?? getMonthKey();
-  if (!keyword || valor <= 0) throw new Error('Preencha categoria e valor corretamente');
+  const useVariados = !rawKeyword;
+  const keyword = useVariados ? VARIEDADOS_CATEGORY : normalizeKeyword(rawKeyword);
+
+  if (valor <= 0) throw new Error('Informe um valor válido');
+  if (!useVariados && !keyword) throw new Error('Categoria inválida');
+
+  let createdCategory = false;
 
   await runTransaction(db, async (transaction) => {
     const configSnap = await transaction.get(configRef);
     if (!configSnap.exists()) transaction.set(configRef, { saldo: 0, rendaMensal: 0 });
 
-    const limitQuery = query(limitsRef);
-    const limitDocs = await getDocs(limitQuery);
+    const limitDocs = await getDocs(query(limitsRef));
     const limitDoc = limitDocs.docs.find((item) => item.data().keyword === keyword);
+    let limitId: string;
 
-    if (!limitDoc) throw new Error('Limite não encontrado para essa categoria');
+    if (!limitDoc) {
+      if (!useVariados) throw new Error('Categoria não encontrada. Crie o limite em Limites.');
 
-    const limitData = limitDoc.data() as Omit<Limit, 'id'>;
-    const expensesSnap = await getDocs(query(expensesRef, orderBy('createdAt', 'desc')));
-    const expenses = expensesSnap.docs.map((item) => ({
-      id: item.id,
-      ...(item.data() as Omit<Expense, 'id' | 'createdAt'>),
-      createdAt: toDate(item.data().createdAt)
-    }));
-    const gastoNoMes = getMonthlySpent(expenses, keyword, mes);
-
-    if (gastoNoMes + valor > limitData.limite) throw new Error('Limite do mês excedido para essa categoria');
+      const limite = Math.max(valor, DEFAULT_VARIEDADOS_LIMIT);
+      const newLimitRef = doc(limitsRef);
+      limitId = newLimitRef.id;
+      transaction.set(newLimitRef, { keyword, limite, restante: limite });
+      createdCategory = true;
+    } else {
+      const limitData = limitDoc.data() as Omit<Limit, 'id'>;
+      if (limitData.restante < valor) throw new Error('Limite excedido');
+      limitId = limitDoc.id;
+    }
 
     const expenseDoc = doc(expensesRef);
     transaction.set(expenseDoc, {
       keyword,
       valor,
       descricao: payload.descricao.trim(),
-      mes,
       createdAt: serverTimestamp()
     });
+    transaction.update(doc(db, 'limits', limitId), { restante: increment(-valor) });
     transaction.update(configRef, { saldo: increment(-valor) });
   });
+
+  return { usedVariados: useVariados, createdCategory };
 };
 
 export const addIncome = async (payload: Omit<Income, 'id' | 'createdAt'>): Promise<void> => {
   const valor = Number(payload.valor);
-  const mes = payload.mes ?? getMonthKey();
   if (valor <= 0) throw new Error('Informe um valor válido');
   await ensureConfig();
-  await addDoc(incomesRef, { valor, descricao: payload.descricao.trim(), mes, createdAt: serverTimestamp() });
+  await addDoc(incomesRef, { valor, descricao: payload.descricao.trim(), createdAt: serverTimestamp() });
   await updateDoc(configRef, { saldo: increment(valor), rendaMensal: increment(valor) });
 };
 
@@ -92,11 +96,7 @@ export const createLimit = async (payload: Omit<Limit, 'id' | 'restante'>): Prom
 
 export const getExpenses = async (): Promise<Expense[]> => {
   const snapshot = await getDocs(query(expensesRef, orderBy('createdAt', 'desc')));
-  return snapshot.docs.map((item) => ({
-    id: item.id,
-    ...(item.data() as Omit<Expense, 'id' | 'createdAt'>),
-    createdAt: toDate(item.data().createdAt)
-  }));
+  return snapshot.docs.map((item) => ({ id: item.id, ...(item.data() as Omit<Expense, 'id' | 'createdAt'>), createdAt: toDate(item.data().createdAt) }));
 };
 
 export const getLimits = async (): Promise<Limit[]> => {
@@ -106,11 +106,7 @@ export const getLimits = async (): Promise<Limit[]> => {
 
 export const getIncomes = async (): Promise<Income[]> => {
   const snapshot = await getDocs(query(incomesRef, orderBy('createdAt', 'desc')));
-  return snapshot.docs.map((item) => ({
-    id: item.id,
-    ...(item.data() as Omit<Income, 'id' | 'createdAt'>),
-    createdAt: toDate(item.data().createdAt)
-  }));
+  return snapshot.docs.map((item) => ({ id: item.id, ...(item.data() as Omit<Income, 'id' | 'createdAt'>), createdAt: toDate(item.data().createdAt) }));
 };
 
 export const getBalance = async (): Promise<Config> => {

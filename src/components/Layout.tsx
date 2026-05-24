@@ -1,7 +1,6 @@
 import { BarChart3, CreditCard, Gauge, History, Wallet } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
-import { MonthSelector } from '../context/FinanceContext';
 
 const links = [
   { to: '/', label: 'Dashboard', icon: Gauge },
@@ -35,9 +34,6 @@ export const Layout = ({ children }: LayoutProps): JSX.Element => (
         ))}
       </nav>
     </aside>
-    <main className="main-content">
-      <MonthSelector />
-      {children}
-    </main>
+    <main className="main-content">{children}</main>
   </div>
 );

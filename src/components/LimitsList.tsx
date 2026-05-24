@@ -1,7 +1,7 @@
-import type { LimitWithUsage } from '../context/FinanceContext';
+import type { Limit } from '../types';
 import { formatCurrency } from '../utils/format';
 
-type LimitsListProps = { limits: LimitWithUsage[] };
+type LimitsListProps = { limits: Limit[] };
 
 export const LimitsList = ({ limits }: LimitsListProps): JSX.Element => {
   if (limits.length === 0) {
@@ -11,7 +11,8 @@ export const LimitsList = ({ limits }: LimitsListProps): JSX.Element => {
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {limits.map((limit) => {
-        const percent = limit.limite > 0 ? Math.min(100, Math.round((limit.gasto / limit.limite) * 100)) : 0;
+        const used = limit.limite - limit.restante;
+        const percent = Math.min(100, Math.round((used / limit.limite) * 100));
 
         return (
           <div key={limit.id} className="limit-card">

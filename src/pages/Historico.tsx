@@ -2,15 +2,15 @@ import { ExpenseList } from '../components/ExpenseList';
 import { useFinance } from '../hooks/useFinance';
 
 export const Historico = (): JSX.Element => {
-  const { monthExpenses, monthLabel } = useFinance();
+  const { expenses } = useFinance();
 
   return (
     <div className="page">
       <header className="page-header">
         <h1 className="page-title">Histórico</h1>
-        <p className="page-subtitle capitalize">Gastos de {monthLabel}</p>
+        <p className="page-subtitle">Todos os gastos salvos no Firestore.</p>
       </header>
-      <ExpenseList expenses={monthExpenses} />
+      <ExpenseList expenses={expenses} />
     </div>
   );
 };
