@@ -3,7 +3,7 @@ import { LimitsList } from '../components/LimitsList';
 import { useFinance } from '../hooks/useFinance';
 
 export const Limites = (): JSX.Element => {
-  const { limits } = useFinance();
+  const { limitsWithUsage } = useFinance();
 
   return (
     <div className="page">
@@ -12,7 +12,7 @@ export const Limites = (): JSX.Element => {
         <p className="page-subtitle">Crie limites por categoria e acompanhe o restante.</p>
       </header>
       <AddLimit />
-      <LimitsList limits={limits} />
+      <LimitsList limits={limitsWithUsage} />
     </div>
   );
 };

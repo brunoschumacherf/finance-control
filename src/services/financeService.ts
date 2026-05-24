@@ -16,6 +16,7 @@ import {
 import { db } from '../firebase';
 import type { Config, Expense, Income, Limit } from '../types';
 import { normalizeKeyword } from '../utils/format';
+import { getSpentByCategory } from '../utils/limits';
 
 const configRef = doc(db, 'config', 'main');
 const limitsRef = collection(db, 'limits');
@@ -61,7 +62,14 @@ export const addExpense = async (payload: Omit<Expense, 'id' | 'createdAt'>): Pr
       createdCategory = true;
     } else {
       const limitData = limitDoc.data() as Omit<Limit, 'id'>;
-      if (limitData.restante < valor) throw new Error('Limite excedido');
+      const expensesSnap = await getDocs(query(expensesRef, orderBy('createdAt', 'desc')));
+      const expenses = expensesSnap.docs.map((item) => ({
+        id: item.id,
+        ...(item.data() as Omit<Expense, 'id' | 'createdAt'>),
+        createdAt: toDate(item.data().createdAt)
+      }));
+      const gastoAtual = getSpentByCategory(expenses, keyword);
+      if (gastoAtual + valor > limitData.limite) throw new Error('Limite excedido');
       limitId = limitDoc.id;
     }
 

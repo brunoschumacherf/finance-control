@@ -1,7 +1,7 @@
-import type { Limit } from '../types';
+import type { LimitWithUsage } from '../utils/limits';
 import { formatCurrency } from '../utils/format';
 
-type LimitsListProps = { limits: Limit[] };
+type LimitsListProps = { limits: LimitWithUsage[] };
 
 export const LimitsList = ({ limits }: LimitsListProps): JSX.Element => {
   if (limits.length === 0) {
@@ -11,8 +11,7 @@ export const LimitsList = ({ limits }: LimitsListProps): JSX.Element => {
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {limits.map((limit) => {
-        const used = limit.limite - limit.restante;
-        const percent = Math.min(100, Math.round((used / limit.limite) * 100));
+        const percent = limit.limite > 0 ? Math.min(100, Math.round((limit.gasto / limit.limite) * 100)) : 0;
 
         return (
           <div key={limit.id} className="limit-card">
@@ -25,7 +24,10 @@ export const LimitsList = ({ limits }: LimitsListProps): JSX.Element => {
             <div className="progress-track">
               <div className="progress-fill" style={{ width: `${percent}%` }} />
             </div>
-            <div className="mt-4 flex justify-between gap-4 text-sm">
+            <div className="mt-4 flex flex-wrap justify-between gap-x-4 gap-y-1 text-sm">
+              <span className="text-zinc-400">
+                Gasto: <b className="text-white">{formatCurrency(limit.gasto)}</b>
+              </span>
               <span className="text-zinc-400">
                 Restante: <b className="text-white">{formatCurrency(limit.restante)}</b>
               </span>

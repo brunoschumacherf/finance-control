@@ -20,12 +20,14 @@ const ChartTooltip = ({ active, payload, label }: { active?: boolean; payload?: 
 };
 
 export const Dashboard = (): JSX.Element => {
-  const { config, expenses, limits, loading, totalGasto, totalRecebido, limiteMaisUsado } = useFinance();
-  const byCategory = limits.map((limit) => ({
-    name: limit.keyword,
-    gasto: limit.limite - limit.restante,
-    restante: limit.restante
-  }));
+  const { config, expenses, limitsWithUsage, loading, totalGasto, totalRecebido, limiteMaisUsado } = useFinance();
+  const byCategory = limitsWithUsage
+    .filter((limit) => limit.gasto > 0)
+    .map((limit) => ({
+      name: limit.keyword,
+      gasto: limit.gasto,
+      restante: limit.restante
+    }));
 
   if (loading) {
     return (
@@ -43,7 +45,7 @@ export const Dashboard = (): JSX.Element => {
       <DashboardCards
         totalGasto={totalGasto}
         totalRecebido={totalRecebido}
-        categorias={limits.length}
+        categorias={limitsWithUsage.length}
         limiteMaisUsado={limiteMaisUsado}
       />
       <div className="grid gap-4 lg:grid-cols-2">
@@ -86,7 +88,7 @@ export const Dashboard = (): JSX.Element => {
           </div>
         </div>
       </div>
-      <LimitsList limits={limits} />
+      <LimitsList limits={limitsWithUsage} />
       <p className="meta-text">Total de registros de gastos: {expenses.length}</p>
     </div>
   );
