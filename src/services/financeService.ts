@@ -33,7 +33,7 @@ export const ensureConfig = async (): Promise<void> => {
   if (!snapshot.exists()) await setDoc(configRef, { saldo: 0, rendaMensal: 0 });
 };
 
-export const addExpense = async (payload: Omit<Expense, 'id' | 'createdAt'>): Promise<{ usedVariados: boolean; createdCategory: boolean }> => {
+export const addExpense = async (payload: Omit<Expense, 'id' | 'createdAt'>): Promise<{ usedVariados: boolean; createdCategory: boolean; limitExceeded: boolean }> => {
   const rawKeyword = payload.keyword.trim();
   const valor = Number(payload.valor);
   const useVariados = !rawKeyword;
@@ -43,6 +43,7 @@ export const addExpense = async (payload: Omit<Expense, 'id' | 'createdAt'>): Pr
   if (!useVariados && !keyword) throw new Error('Categoria inválida');
 
   let createdCategory = false;
+  let limitExceeded = false;
 
   await runTransaction(db, async (transaction) => {
     const configSnap = await transaction.get(configRef);
@@ -69,7 +70,7 @@ export const addExpense = async (payload: Omit<Expense, 'id' | 'createdAt'>): Pr
         createdAt: toDate(item.data().createdAt)
       }));
       const gastoAtual = getSpentByCategory(expenses, keyword);
-      if (gastoAtual + valor > limitData.limite) throw new Error('Limite excedido');
+      limitExceeded = gastoAtual + valor > limitData.limite;
       limitId = limitDoc.id;
     }
 
@@ -84,7 +85,7 @@ export const addExpense = async (payload: Omit<Expense, 'id' | 'createdAt'>): Pr
     transaction.update(configRef, { saldo: increment(-valor) });
   });
 
-  return { usedVariados: useVariados, createdCategory };
+  return { usedVariados: useVariados, createdCategory, limitExceeded };
 };
 
 export const addIncome = async (payload: Omit<Income, 'id' | 'createdAt'>): Promise<void> => {

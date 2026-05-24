@@ -2,6 +2,14 @@ import { FormEvent, useState } from 'react';
 import toast from 'react-hot-toast';
 import { addExpense } from '../services/financeService';
 
+const warnToastStyle = {
+  background: 'rgb(69 26 3 / 0.95)',
+  color: '#fef3c7',
+  border: '1px solid rgb(245 158 11 / 0.5)',
+  borderRadius: '1rem',
+  padding: '12px 16px'
+};
+
 export const AddExpense = (): JSX.Element => {
   const [keyword, setKeyword] = useState<string>('');
   const [valor, setValor] = useState<string>('');
@@ -12,13 +20,28 @@ export const AddExpense = (): JSX.Element => {
     event.preventDefault();
     setLoading(true);
     try {
-      const { usedVariados, createdCategory } = await addExpense({ keyword, valor: Number(valor), descricao });
+      const { usedVariados, createdCategory, limitExceeded } = await addExpense({
+        keyword,
+        valor: Number(valor),
+        descricao
+      });
       setKeyword('');
       setValor('');
       setDescricao('');
-      if (createdCategory) toast.success('Categoria variados criada e gasto adicionado');
-      else if (usedVariados) toast.success('Gasto adicionado em variados');
-      else toast.success('Gasto adicionado');
+
+      if (limitExceeded) {
+        toast('Gasto salvo, mas o limite da categoria foi excedido', {
+          icon: '⚠️',
+          style: warnToastStyle,
+          duration: 5000
+        });
+      } else if (createdCategory) {
+        toast.success('Categoria variados criada e gasto adicionado');
+      } else if (usedVariados) {
+        toast.success('Gasto adicionado em variados');
+      } else {
+        toast.success('Gasto adicionado');
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Erro ao adicionar gasto');
     } finally {
