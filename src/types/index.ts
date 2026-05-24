@@ -3,6 +3,7 @@ export type Expense = {
   keyword: string;
   valor: number;
   descricao: string;
+  mes?: string;
   createdAt: Date;
 };
 
@@ -10,6 +11,7 @@ export type Income = {
   id?: string;
   valor: number;
   descricao: string;
+  mes?: string;
   createdAt: Date;
 };
 

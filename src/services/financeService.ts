@@ -16,13 +16,19 @@ import {
 import { db } from '../firebase';
 import type { Config, Expense, Income, Limit } from '../types';
 import { normalizeKeyword } from '../utils/format';
+import { getExpenseMonth, getMonthKey } from '../utils/month';
 
 const configRef = doc(db, 'config', 'main');
 const limitsRef = collection(db, 'limits');
 const expensesRef = collection(db, 'expenses');
 const incomesRef = collection(db, 'incomes');
 
-const toDate = (value: unknown): Date => value instanceof Timestamp ? value.toDate() : new Date();
+const toDate = (value: unknown): Date => (value instanceof Timestamp ? value.toDate() : new Date());
+
+const getMonthlySpent = (expenses: Expense[], keyword: string, monthKey: string): number =>
+  expenses
+    .filter((expense) => expense.keyword === keyword && getExpenseMonth(expense) === monthKey)
+    .reduce((sum, expense) => sum + expense.valor, 0);
 
 export const ensureConfig = async (): Promise<void> => {
   const snapshot = await getDoc(configRef);
@@ -32,6 +38,7 @@ export const ensureConfig = async (): Promise<void> => {
 export const addExpense = async (payload: Omit<Expense, 'id' | 'createdAt'>): Promise<void> => {
   const keyword = normalizeKeyword(payload.keyword);
   const valor = Number(payload.valor);
+  const mes = payload.mes ?? getMonthKey();
   if (!keyword || valor <= 0) throw new Error('Preencha categoria e valor corretamente');
 
   await runTransaction(db, async (transaction) => {
@@ -45,25 +52,34 @@ export const addExpense = async (payload: Omit<Expense, 'id' | 'createdAt'>): Pr
     if (!limitDoc) throw new Error('Limite não encontrado para essa categoria');
 
     const limitData = limitDoc.data() as Omit<Limit, 'id'>;
-    if (limitData.restante < valor) throw new Error('Limite excedido');
+    const expensesSnap = await getDocs(query(expensesRef, orderBy('createdAt', 'desc')));
+    const expenses = expensesSnap.docs.map((item) => ({
+      id: item.id,
+      ...(item.data() as Omit<Expense, 'id' | 'createdAt'>),
+      createdAt: toDate(item.data().createdAt)
+    }));
+    const gastoNoMes = getMonthlySpent(expenses, keyword, mes);
+
+    if (gastoNoMes + valor > limitData.limite) throw new Error('Limite do mês excedido para essa categoria');
 
     const expenseDoc = doc(expensesRef);
     transaction.set(expenseDoc, {
       keyword,
       valor,
       descricao: payload.descricao.trim(),
+      mes,
       createdAt: serverTimestamp()
     });
-    transaction.update(doc(db, 'limits', limitDoc.id), { restante: increment(-valor) });
     transaction.update(configRef, { saldo: increment(-valor) });
   });
 };
 
 export const addIncome = async (payload: Omit<Income, 'id' | 'createdAt'>): Promise<void> => {
   const valor = Number(payload.valor);
+  const mes = payload.mes ?? getMonthKey();
   if (valor <= 0) throw new Error('Informe um valor válido');
   await ensureConfig();
-  await addDoc(incomesRef, { valor, descricao: payload.descricao.trim(), createdAt: serverTimestamp() });
+  await addDoc(incomesRef, { valor, descricao: payload.descricao.trim(), mes, createdAt: serverTimestamp() });
   await updateDoc(configRef, { saldo: increment(valor), rendaMensal: increment(valor) });
 };
 
@@ -76,7 +92,11 @@ export const createLimit = async (payload: Omit<Limit, 'id' | 'restante'>): Prom
 
 export const getExpenses = async (): Promise<Expense[]> => {
   const snapshot = await getDocs(query(expensesRef, orderBy('createdAt', 'desc')));
-  return snapshot.docs.map((item) => ({ id: item.id, ...(item.data() as Omit<Expense, 'id' | 'createdAt'>), createdAt: toDate(item.data().createdAt) }));
+  return snapshot.docs.map((item) => ({
+    id: item.id,
+    ...(item.data() as Omit<Expense, 'id' | 'createdAt'>),
+    createdAt: toDate(item.data().createdAt)
+  }));
 };
 
 export const getLimits = async (): Promise<Limit[]> => {
@@ -86,7 +106,11 @@ export const getLimits = async (): Promise<Limit[]> => {
 
 export const getIncomes = async (): Promise<Income[]> => {
   const snapshot = await getDocs(query(incomesRef, orderBy('createdAt', 'desc')));
-  return snapshot.docs.map((item) => ({ id: item.id, ...(item.data() as Omit<Income, 'id' | 'createdAt'>), createdAt: toDate(item.data().createdAt) }));
+  return snapshot.docs.map((item) => ({
+    id: item.id,
+    ...(item.data() as Omit<Income, 'id' | 'createdAt'>),
+    createdAt: toDate(item.data().createdAt)
+  }));
 };
 
 export const getBalance = async (): Promise<Config> => {

@@ -1,12 +1,12 @@
 import { ArrowDownCircle, ArrowUpCircle, ChartPie, Tags } from 'lucide-react';
-import type { Limit } from '../types';
+import type { LimitWithUsage } from '../context/FinanceContext';
 import { formatCurrency } from '../utils/format';
 
 type DashboardCardsProps = {
   totalGasto: number;
   totalRecebido: number;
   categorias: number;
-  limiteMaisUsado?: Limit;
+  limiteMaisUsado?: LimitWithUsage;
 };
 
 const Card = ({ title, value, children }: { title: string; value: string; children: JSX.Element }): JSX.Element => (
