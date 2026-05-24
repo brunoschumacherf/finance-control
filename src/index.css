@@ -260,6 +260,22 @@
     @apply text-base font-bold text-red-300;
   }
 
+  .list-item-edit {
+    @apply space-y-3 rounded-2xl border border-purple-500/30 bg-white/[0.06] p-4;
+  }
+
+  .item-actions {
+    @apply flex shrink-0 items-center gap-1;
+  }
+
+  .item-action-btn {
+    @apply rounded-lg p-2 text-zinc-400 transition hover:bg-white/10 hover:text-white disabled:opacity-50;
+  }
+
+  .item-action-btn-danger:hover {
+    @apply text-red-300;
+  }
+
   .progress-track {
     @apply mt-4 h-2.5 overflow-hidden rounded-full bg-zinc-800/80;
   }
@@ -306,5 +322,25 @@
 
   .meta-text {
     @apply text-sm text-zinc-500;
+  }
+
+  .month-selector {
+    @apply mb-6 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3 backdrop-blur-xl md:p-4;
+  }
+
+  .month-selector-btn {
+    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-zinc-300 transition-all duration-200 hover:border-white/15 hover:bg-white/10 hover:text-white;
+  }
+
+  .month-selector-label {
+    @apply flex min-w-0 flex-1 flex-col items-center gap-1 text-center;
+  }
+
+  .month-selector-title {
+    @apply text-base font-bold capitalize tracking-tight text-white md:text-lg;
+  }
+
+  .month-selector-today {
+    @apply text-xs font-medium text-purple-300 transition hover:text-purple-200;
   }
 }

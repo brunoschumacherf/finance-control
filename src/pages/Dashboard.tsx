@@ -20,7 +20,7 @@ const ChartTooltip = ({ active, payload, label }: { active?: boolean; payload?: 
 };
 
 export const Dashboard = (): JSX.Element => {
-  const { config, expenses, limitsWithUsage, loading, totalGasto, totalRecebido, limiteMaisUsado } = useFinance();
+  const { config, monthExpenses, limitsWithUsage, loading, totalGasto, totalRecebido, saldoMes, monthLabel, limiteMaisUsado } = useFinance();
   const byCategory = limitsWithUsage
     .filter((limit) => limit.gasto > 0)
     .map((limit) => ({
@@ -41,7 +41,7 @@ export const Dashboard = (): JSX.Element => {
 
   return (
     <div className="page">
-      <BalanceCard saldo={config.saldo} rendaMensal={config.rendaMensal} />
+      <BalanceCard saldo={config.saldo} totalRecebido={totalRecebido} saldoMes={saldoMes} monthLabel={monthLabel} />
       <DashboardCards
         totalGasto={totalGasto}
         totalRecebido={totalRecebido}
@@ -89,7 +89,7 @@ export const Dashboard = (): JSX.Element => {
         </div>
       </div>
       <LimitsList limits={limitsWithUsage} />
-      <p className="meta-text">Total de registros de gastos: {expenses.length}</p>
+      <p className="meta-text">Gastos no mês: {monthExpenses.length}</p>
     </div>
   );
 };

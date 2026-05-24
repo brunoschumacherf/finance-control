@@ -1,22 +1,30 @@
 import { AddExpense } from '../components/AddExpense';
 import { AddIncome } from '../components/AddIncome';
 import { ExpenseList } from '../components/ExpenseList';
+import { IncomeList } from '../components/IncomeList';
 import { useFinance } from '../hooks/useFinance';
 
 export const Gastos = (): JSX.Element => {
-  const { expenses } = useFinance();
+  const { monthExpenses, monthIncomes, monthLabel } = useFinance();
 
   return (
     <div className="page">
       <header className="page-header">
         <h1 className="page-title">Gastos</h1>
-        <p className="page-subtitle">Adicione gastos e saldo recebido.</p>
+        <p className="page-subtitle capitalize">Mês selecionado: {monthLabel}</p>
       </header>
       <div className="grid gap-4 lg:grid-cols-2">
         <AddExpense />
         <AddIncome />
       </div>
-      <ExpenseList expenses={expenses} />
+      <section className="space-y-3">
+        <h2 className="text-lg font-bold text-white">Gastos do mês</h2>
+        <ExpenseList expenses={monthExpenses} />
+      </section>
+      <section className="space-y-3">
+        <h2 className="text-lg font-bold text-white">Receitas do mês</h2>
+        <IncomeList incomes={monthIncomes} />
+      </section>
     </div>
   );
 };

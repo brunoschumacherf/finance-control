@@ -1,8 +1,10 @@
 import { FormEvent, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useFinance } from '../hooks/useFinance';
 import { createLimit } from '../services/financeService';
 
 export const AddLimit = (): JSX.Element => {
+  const { selectedMonth, monthLabel } = useFinance();
   const [keyword, setKeyword] = useState<string>('');
   const [limite, setLimite] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
@@ -11,7 +13,7 @@ export const AddLimit = (): JSX.Element => {
     event.preventDefault();
     setLoading(true);
     try {
-      await createLimit({ keyword, limite: Number(limite) });
+      await createLimit({ keyword, limite: Number(limite), mes: selectedMonth });
       setKeyword('');
       setLimite('');
       toast.success('Limite criado');
@@ -24,7 +26,8 @@ export const AddLimit = (): JSX.Element => {
 
   return (
     <form onSubmit={submit} className="card-elevated card-body">
-      <h2 className="card-title mb-4">Criar limite</h2>
+      <h2 className="card-title mb-1">Criar limite</h2>
+      <p className="mb-4 text-sm capitalize text-zinc-400">Mês: {monthLabel}</p>
       <div className="form-grid-2">
         <input className="input-field" placeholder="Categoria" value={keyword} onChange={(e) => setKeyword(e.target.value)} />
         <input className="input-field" placeholder="Limite" type="number" min="0" step="0.01" value={limite} onChange={(e) => setLimite(e.target.value)} />

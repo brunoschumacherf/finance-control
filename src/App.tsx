@@ -1,5 +1,6 @@
 import { Toaster } from 'react-hot-toast';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { FinanceProvider } from './context/FinanceContext';
 import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
 import { Gastos } from './pages/Gastos';
@@ -18,21 +19,23 @@ const toastStyle = {
 
 export const App = (): JSX.Element => (
   <BrowserRouter>
-    <Layout>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/gastos" element={<Gastos />} />
-        <Route path="/limites" element={<Limites />} />
-        <Route path="/historico" element={<Historico />} />
-      </Routes>
-    </Layout>
-    <Toaster
-      position="top-right"
-      toastOptions={{
-        style: toastStyle,
-        success: { iconTheme: { primary: '#7c3aed', secondary: '#fff' } },
-        error: { iconTheme: { primary: '#f87171', secondary: '#fff' } }
-      }}
-    />
+    <FinanceProvider>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/gastos" element={<Gastos />} />
+          <Route path="/limites" element={<Limites />} />
+          <Route path="/historico" element={<Historico />} />
+        </Routes>
+      </Layout>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: toastStyle,
+          success: { iconTheme: { primary: '#7c3aed', secondary: '#fff' } },
+          error: { iconTheme: { primary: '#f87171', secondary: '#fff' } }
+        }}
+      />
+    </FinanceProvider>
   </BrowserRouter>
 );
